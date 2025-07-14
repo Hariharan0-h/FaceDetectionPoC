@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Management - Face Detection System</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 32px 64px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E") repeat;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 20px 30px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            background: white;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            height: 100%;
+        }
+
+        .form-section {
+            background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 28px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        input, select, textarea {
+            padding: 14px 18px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .camera-section {
+            text-align: center;
+        }
+
+        .camera-container {
+            position: relative;
+            display: inline-block;
+            margin: 24px 0;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+            background: #000;
+        }
+
+        #video, #canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 20px;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .face-detection-box {
+            position: absolute;
+            border: 3px solid #00ff88;
+            border-radius: 12px;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-weight: 500;
+            border-left: 4px solid;
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border-left-color: #28a745;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+
+        .face-preview {
+            margin: 24px 0;
+            text-align: center;
+        }
+
+        .face-preview img {
+            max-width: 160px;
+            border-radius: 50%;
+            border: 5px solid #667eea;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .submit-section {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .patients-list {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+        }
+
+        .search-controls {
+            padding: 24px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .patient-card {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .patient-card:hover {
+            background: #f8f9fa;
+            transform: translateX(4px);
+        }
+
+        .patient-card:last-child {
+            border-bottom: none;
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .patient-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .patient-id {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .patient-details {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+
+        .patient-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 16px;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .face-recognition-section {
+            background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .recognition-result {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .match-found {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .no-match {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .nav-tab {
+                padding: 16px 20px;
+                font-size: 1rem;
+            }
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .api-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .api-connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .api-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .model-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .model-loaded {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .model-loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .model-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div id="apiStatus" class="api-status api-disconnected">API: Checking...</div>
+    <div id="modelStatus" class="model-status model-loading">Models: Loading...</div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 16px;">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                        <path d="M7 18c0-2.21 2.24-4 5-4s5 1.79 5 4"/>
+                    </svg>
+                    Patient Management System
+                </h1>
+                <p>Advanced Face Detection & Patient Information Management</p>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('register')">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Register Patient
+            </button>
+            <button class="nav-tab" onclick="switchTab('patients')">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                Patient List
+            </button>
+        </div>
+
+        <!-- Register Patient Tab -->
+        <div id="register" class="tab-content active">
+            <form id="patientForm" class="main-grid">
+                <!-- Patient Information Section -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                        Patient Information
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="name">Full Name <span class="required">*</span></label>
+                            <input type="text" id="name" name="name" required placeholder="Enter patient's full name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" required placeholder="patient@example.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                            <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="+1 (555) 000-0000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <select id="country" name="country">
+                                <option value="">Select Country</option>
+                                <option value="US">United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="UK">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                                <option value="IN">India</option>
+                                <option value="DE">Germany</option>
+                                <option value="FR">France</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="address">Street Address</label>
+                            <input type="text" id="address" name="address" placeholder="123 Main Street">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city" placeholder="City">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="state">State/Province</label>
+                                <input type="text" id="state" name="state" placeholder="State">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="zipCode">ZIP/Postal Code</label>
+                            <input type="text" id="zipCode" name="zipCode" placeholder="12345">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Face Detection Section -->
+                <div class="form-section camera-section">
+                    <h2 class="section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-7 7H3v4a2 2 0 0 0 2 2h4v-2H5v-4zM5 5h4V3H5a2 2 0 0 0-2 2v4h2V5zm14 0h-4V3h4a2 2 0 0 1 2 2v4h-2V5zm0 14h-4v2h4a2 2 0 0 0 2-2v-4h-2v4z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        Face Detection & Recognition
+                    </h2>
+
+                    <div id="statusMessage"></div>
+                    
+                    <div id="recognitionResult" style="margin-bottom: 20px;"></div>
+
+                    <div class="camera-container">
+                        <video id="video" width="400" height="300" autoplay muted></video>
+                        <canvas id="canvas" width="400" height="300"></canvas>
+                        <div class="camera-overlay" id="overlay"></div>
+                    </div>
+
+                    <div class="camera-controls">
+                        <button type="button" id="startCamera" class="btn btn-primary">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/>
+                            </svg>
+                            Start Camera
+                        </button>
+                        <button type="button" id="capturePhoto" class="btn btn-success" disabled>
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Capture & Recognize
+                        </button>
+                        <button type="button" id="retakePhoto" class="btn btn-secondary" style="display: none;">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                            </svg>
+                            Clear & Retake
+                        </button>
+                    </div>
+
+                    <div class="face-preview" id="facePreview" style="display: none;">
+                        <h3>Captured Face Data</h3>
+                        <img id="capturedFace" src="" alt="Captured Face">
+                        <p><small>Face embedding generated successfully</small></p>
+                    </div>
+
+                    <input type="hidden" id="faceEmbedding" name="faceEmbedding">
+                    <input type="hidden" id="matchedPatientId" name="matchedPatientId">
+                </div>
+
+                <div class="submit-section">
+                    <button type="submit" id="submitBtn" class="btn btn-primary" style="font-size: 1.2rem; padding: 16px 48px;">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                        </svg>
+                        Register Patient
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Patient List Tab -->
+        <div id="patients" class="tab-content">
+            <div class="patients-list">
+                <div class="search-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search patients by name, email, or phone...">
+                    <button class="btn btn-primary" onclick="loadPatients()">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="patientsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'https://localhost:7223/api';
+        
+        // Global variables
+        let video, canvas, ctx, overlay;
+        let faceDetectionModel = null;
+        let isModelLoaded = false;
+        let modelLoadError = false;
+        let stream = null;
+        let capturedFaceEmbedding = null;
+        let allPatients = [];
+        let currentMatchedPatient = null;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize video elements
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            overlay = document.getElementById('overlay');
+
+            // Check API connection
+            await checkApiConnection();
+
+            // Wait for face-api.js to load, then load models
+            await waitForFaceApi();
+            await loadFaceDetectionModels();
+
+            // Load initial patient data
+            await loadPatients();
+
+            // Event listeners
+            document.getElementById('startCamera').addEventListener('click', startCamera);
+            document.getElementById('capturePhoto').addEventListener('click', captureAndRecognize);
+            document.getElementById('retakePhoto').addEventListener('click', retakePhoto);
+            document.getElementById('patientForm').addEventListener('submit', handleSubmit);
+            document.getElementById('searchInput').addEventListener('input', filterPatients);
+        });
+
+        async function waitForFaceApi() {
+            return new Promise((resolve) => {
+                if (typeof faceapi !== 'undefined') {
+                    resolve();
+                } else {
+                    const checkInterval = setInterval(() => {
+                        if (typeof faceapi !== 'undefined') {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                    
+                    // Timeout after 15 seconds
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        console.warn('Face-api.js library failed to load within timeout');
+                        updateModelStatus('error', 'Library failed to load');
+                        resolve();
+                    }, 15000);
+                }
+            });
+        }
+
+        // API Functions
+        async function checkApiConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/Patients`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    updateApiStatus(true);
+                } else {
+                    updateApiStatus(false);
+                }
+            } catch (error) {
+                console.error('API connection failed:', error);
+                updateApiStatus(false);
+            }
+        }
+
+        function updateApiStatus(connected) {
+            const statusEl = document.getElementById('apiStatus');
+            if (connected) {
+                statusEl.textContent = 'API: Connected';
+                statusEl.className = 'api-status api-connected';
+            } else {
+                statusEl.textContent = 'API: Disconnected';
+                statusEl.className = 'api-status api-disconnected';
+            }
+        }
+
+        function updateModelStatus(status, message) {
+            const modelStatusEl = document.getElementById('modelStatus');
+            switch (status) {
+                case 'loading':
+                    modelStatusEl.textContent = `Models: ${message || 'Loading...'}`;
+                    modelStatusEl.className = 'model-status model-loading';
+                    break;
+                case 'loaded':
+                    modelStatusEl.textContent = 'Models: Ready';
+                    modelStatusEl.className = 'model-status model-loaded';
+                    break;
+                case 'error':
+                    modelStatusEl.textContent = `Models: ${message || 'Error'}`;
+                    modelStatusEl.className = 'model-status model-error';
+                    break;
+            }
+        }
+
+        async function loadPatients() {
+            try {
+                showStatus('Loading patients...', 'warning');
+                
+                const response = await fetch(`${API_BASE_URL}/Patients`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                allPatients = await response.json();
+                displayPatients(allPatients);
+                showStatus(`Loaded ${allPatients.length} patients successfully`, 'success');
+                
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                showStatus('Failed to load patients. Please check API connection.', 'error');
+                displayEmptyState();
+            }
+        }
+
+        async function savePatient(patientData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/Patients`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(patientData)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error saving patient:', error);
+                throw error;
+            }
+        }
+
+        async function deletePatient(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/Patients/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error deleting patient:', error);
+                throw error;
+            }
+        }
+
+        // Face Detection Functions
+        async function loadFaceDetectionModels() {
+            if (typeof faceapi === 'undefined') {
+                updateModelStatus('error', 'Face-api.js not loaded');
+                modelLoadError = true;
+                return;
+            }
+
+            try {
+                updateModelStatus('loading', 'Loading models...');
+                showStatus('Loading face detection models...', 'warning');
+                
+                // Use correct model URLs for @vladmandic/face-api
+                const modelPath = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
+                
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(modelPath)
+                ]);
+                
+                isModelLoaded = true;
+                modelLoadError = false;
+                updateModelStatus('loaded');
+                showStatus('Face detection models loaded successfully!', 'success');
+                
+                console.log('Face detection models loaded successfully');
+                
+            } catch (error) {
+                console.error('Error loading face detection models:', error);
+                modelLoadError = true;
+                updateModelStatus('error', 'Load failed');
+                showStatus('Failed to load face detection models. Face recognition will be disabled.', 'warning');
+                
+                // Fall back to basic camera functionality
+                isModelLoaded = false;
+            }
+        }
+
+        async function startCamera() {
+            try {
+                showStatus('Accessing camera...', 'warning');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 400, 
+                        height: 300,
+                        facingMode: 'user'
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    video.play();
+                    document.getElementById('startCamera').disabled = true;
+                    document.getElementById('capturePhoto').disabled = false;
+                    
+                    if (isModelLoaded) {
+                        showStatus('Camera ready! Position your face in the frame.', 'success');
+                        startFaceDetection(video, overlay);
+                    } else {
+                        showStatus('Camera ready! Face detection disabled due to model load error.', 'warning');
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showStatus('Failed to access camera. Please ensure camera permissions are granted.', 'error');
+            }
+        }
+
+        async function startFaceDetection(videoElement, overlayElement) {
+            if (!isModelLoaded || typeof faceapi === 'undefined') {
+                console.log('Face detection not available - models not loaded or library unavailable');
+                return;
+            }
+            
+            const detectFaces = async () => {
+                try {
+                    if (videoElement.readyState === 4) {
+                        const detections = await faceapi.detectAllFaces(videoElement, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptors();
+                        
+                        overlayElement.innerHTML = '';
+                        
+                        detections.forEach(detection => {
+                            const box = detection.detection.box;
+                            const faceBox = document.createElement('div');
+                            faceBox.className = 'face-detection-box';
+                            faceBox.style.left = box.x + 'px';
+                            faceBox.style.top = box.y + 'px';
+                            faceBox.style.width = box.width + 'px';
+                            faceBox.style.height = box.height + 'px';
+                            overlayElement.appendChild(faceBox);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error in face detection:', error);
+                }
+                
+                if (stream && stream.active) {
+                    requestAnimationFrame(detectFaces);
+                }
+            };
+            
+            detectFaces();
+        }
+
+        async function captureAndRecognize() {
+            try {
+                showStatus('Capturing face image...', 'warning');
+                
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                if (isModelLoaded && !modelLoadError) {
+                    showStatus('Analyzing face...', 'warning');
+                    
+                    const detections = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                    
+                    if (detections) {
+                        capturedFaceEmbedding = Array.from(detections.descriptor);
+                        
+                        // Search for matching patient
+                        const matchResult = await searchForMatchingPatient(capturedFaceEmbedding);
+                        
+                        // Set the face embedding for registration
+                        document.getElementById('faceEmbedding').value = JSON.stringify(capturedFaceEmbedding);
+                        
+                        // Show captured face
+                        const faceImage = canvas.toDataURL('image/jpeg', 0.8);
+                        document.getElementById('capturedFace').src = faceImage;
+                        document.getElementById('facePreview').style.display = 'block';
+                        
+                        // Update UI
+                        document.getElementById('capturePhoto').disabled = true;
+                        document.getElementById('retakePhoto').style.display = 'inline-flex';
+                        
+                        if (matchResult.found) {
+                            // Patient found - auto-fill form
+                            fillFormWithPatientData(matchResult.patient, matchResult.similarity);
+                            showStatus(`Existing patient detected: ${matchResult.patient.name} (${(matchResult.similarity * 100).toFixed(1)}% match)`, 'success');
+                        } else {
+                            // New patient - clear any previous data
+                            clearPatientMatch();
+                            showStatus('New face detected. Ready for patient registration!', 'success');
+                        }
+                        
+                    } else {
+                        // No face detected
+                        handleNoFaceDetected();
+                    }
+                } else {
+                    // Fallback: just capture image without embedding/recognition
+                    handleFallbackCapture();
+                }
+                
+            } catch (error) {
+                console.error('Error capturing photo:', error);
+                showStatus('Failed to capture face data. Please try again.', 'error');
+            }
+        }
+
+        function handleNoFaceDetected() {
+            showStatus('No face detected. Please ensure your face is clearly visible and try again.', 'error');
+            
+            // Still capture the image for reference
+            const faceImage = canvas.toDataURL('image/jpeg', 0.8);
+            document.getElementById('capturedFace').src = faceImage;
+            document.getElementById('facePreview').style.display = 'block';
+            
+            // Create empty embedding
+            document.getElementById('faceEmbedding').value = JSON.stringify([]);
+            
+            document.getElementById('capturePhoto').disabled = true;
+            document.getElementById('retakePhoto').style.display = 'inline-flex';
+            clearPatientMatch();
+        }
+
+        function handleFallbackCapture() {
+            const faceImage = canvas.toDataURL('image/jpeg', 0.8);
+            document.getElementById('capturedFace').src = faceImage;
+            document.getElementById('facePreview').style.display = 'block';
+            
+            // Create placeholder embedding
+            document.getElementById('faceEmbedding').value = JSON.stringify([]);
+            
+            document.getElementById('capturePhoto').disabled = true;
+            document.getElementById('retakePhoto').style.display = 'inline-flex';
+            
+            clearPatientMatch();
+            showStatus('Face image captured (face recognition unavailable).', 'warning');
+        }
+
+        async function searchForMatchingPatient(searchEmbedding) {
+            let bestMatch = null;
+            let bestSimilarity = 0;
+            const threshold = 0.6;
+            
+            for (const patient of allPatients) {
+                if (patient.faceEmbedding) {
+                    try {
+                        const storedEmbedding = JSON.parse(patient.faceEmbedding);
+                        if (Array.isArray(storedEmbedding) && storedEmbedding.length > 0) {
+                            const similarity = calculateCosineSimilarity(searchEmbedding, storedEmbedding);
+                            
+                            if (similarity > bestSimilarity && similarity >= threshold) {
+                                bestSimilarity = similarity;
+                                bestMatch = patient;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Invalid embedding for patient:', patient.id);
+                    }
+                }
+            }
+            
+            return {
+                found: bestMatch !== null,
+                patient: bestMatch,
+                similarity: bestSimilarity
+            };
+        }
+
+        function fillFormWithPatientData(patient, similarity) {
+            currentMatchedPatient = patient;
+            
+            // Fill form fields
+            document.getElementById('name').value = patient.name || '';
+            document.getElementById('email').value = patient.email || '';
+            document.getElementById('phoneNumber').value = patient.phoneNumber || '';
+            document.getElementById('address').value = patient.address || '';
+            document.getElementById('city').value = patient.city || '';
+            document.getElementById('state').value = patient.state || '';
+            document.getElementById('zipCode').value = patient.zipCode || '';
+            document.getElementById('country').value = patient.country || '';
+            document.getElementById('matchedPatientId').value = patient.id;
+            
+            // Show recognition result
+            displayRecognitionResult(patient, similarity);
+            
+            // Change submit button text
+            document.getElementById('submitBtn').innerHTML = `
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+                Update Patient
+            `;
+        }
+
+        function clearPatientMatch() {
+            currentMatchedPatient = null;
+            document.getElementById('matchedPatientId').value = '';
+            document.getElementById('recognitionResult').innerHTML = '';
+            
+            // Reset submit button
+            document.getElementById('submitBtn').innerHTML = `
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+                Register New Patient
+            `;
+        }
+
+        function calculateCosineSimilarity(embedding1, embedding2) {
+            if (embedding1.length !== embedding2.length) return 0;
+            
+            let dotProduct = 0;
+            let norm1 = 0;
+            let norm2 = 0;
+            
+            for (let i = 0; i < embedding1.length; i++) {
+                dotProduct += embedding1[i] * embedding2[i];
+                norm1 += Math.pow(embedding1[i], 2);
+                norm2 += Math.pow(embedding2[i], 2);
+            }
+            
+            if (norm1 === 0 || norm2 === 0) return 0;
+            
+            return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+        }
+
+        function displayRecognitionResult(patient, similarity) {
+            const resultDiv = document.getElementById('recognitionResult');
+            
+            if (patient) {
+                resultDiv.innerHTML = `
+                    <div class="recognition-result match-found">
+                        <h3>✓ Patient Recognized!</h3>
+                        <div style="margin: 16px 0;">
+                            <strong>${patient.name}</strong><br>
+                            <small>Email: ${patient.email}</small><br>
+                            <small>Phone: ${patient.phoneNumber}</small><br>
+                            <small>Match Confidence: ${(similarity * 100).toFixed(1)}%</small>
+                        </div>
+                        <p><small>Form has been auto-filled. Review and update if needed.</small></p>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        function retakePhoto() {
+            // Reset capture state
+            document.getElementById('facePreview').style.display = 'none';
+            document.getElementById('capturePhoto').disabled = false;
+            document.getElementById('retakePhoto').style.display = 'none';
+            document.getElementById('faceEmbedding').value = '';
+            capturedFaceEmbedding = null;
+            
+            // Clear form if it was auto-filled
+            if (currentMatchedPatient) {
+                document.getElementById('patientForm').reset();
+                clearPatientMatch();
+            }
+            
+            showStatus('Ready to capture face again.', 'warning');
+        }
+
+        // UI Functions
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            
+            // Load patients when switching to patients tab
+            if (tabName === 'patients') {
+                loadPatients();
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        function displayPatients(patients) {
+            const listContainer = document.getElementById('patientsList');
+            
+            if (patients.length === 0) {
+                displayEmptyState();
+                return;
+            }
+            
+            listContainer.innerHTML = patients.map(patient => `
+                <div class="patient-card">
+                    <div class="patient-header">
+                        <div class="patient-name">${patient.name}</div>
+                        <div class="patient-id">ID: ${patient.id}</div>
+                    </div>
+                    <div class="patient-details">
+                        <div><strong>Email:</strong> ${patient.email || 'N/A'}</div>
+                        <div><strong>Phone:</strong> ${patient.phoneNumber || 'N/A'}</div>
+                        <div><strong>Address:</strong> ${[patient.address, patient.city, patient.state, patient.zipCode].filter(Boolean).join(', ') || 'N/A'}</div>
+                        <div><strong>Face Data:</strong> ${patient.faceEmbedding ? 'Available' : 'Not captured'}</div>
+                    </div>
+                    <div class="patient-actions">
+                        <button class="btn btn-primary btn-small" onclick="viewPatientDetails(${patient.id})">View</button>
+                        <button class="btn btn-danger btn-small" onclick="confirmDeletePatient(${patient.id}, '${patient.name}')">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayEmptyState() {
+            const listContainer = document.getElementById('patientsList');
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    <h3>No patients found</h3>
+                    <p>Start by registering your first patient.</p>
+                    <button class="btn btn-primary" onclick="switchTab('register')">Register Patient</button>
+                </div>
+            `;
+        }
+
+        function filterPatients() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredPatients = allPatients.filter(patient => 
+                patient.name.toLowerCase().includes(searchTerm) ||
+                (patient.email && patient.email.toLowerCase().includes(searchTerm)) ||
+                (patient.phoneNumber && patient.phoneNumber.includes(searchTerm))
+            );
+            displayPatients(filteredPatients);
+        }
+
+        function viewPatientDetails(id) {
+            const patient = allPatients.find(p => p.id === id);
+            if (patient) {
+                alert(`Patient Details:\n\nName: ${patient.name}\nEmail: ${patient.email}\nPhone: ${patient.phoneNumber}\nAddress: ${[patient.address, patient.city, patient.state, patient.zipCode].filter(Boolean).join(', ')}\nCountry: ${patient.country || 'N/A'}\nFace Data: ${patient.faceEmbedding ? 'Available' : 'Not captured'}`);
+            }
+        }
+
+        async function confirmDeletePatient(id, name) {
+            if (confirm(`Are you sure you want to delete patient "${name}"?`)) {
+                try {
+                    await deletePatient(id);
+                    showStatus(`Patient "${name}" deleted successfully.`, 'success');
+                    await loadPatients();
+                } catch (error) {
+                    showStatus(`Failed to delete patient "${name}".`, 'error');
+                }
+            }
+        }
+
+        // Form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const patientData = Object.fromEntries(formData.entries());
+            
+            // Validate required fields
+            if (!patientData.name || !patientData.email || !patientData.phoneNumber) {
+                showStatus('Please fill in all required fields.', 'error');
+                return;
+            }
+            
+            if (!patientData.faceEmbedding) {
+                showStatus('Please capture face data before submitting.', 'error');
+                return;
+            }
+            
+            // Ensure face embedding is properly formatted
+            try {
+                const embeddingArray = JSON.parse(patientData.faceEmbedding);
+                if (!Array.isArray(embeddingArray)) {
+                    throw new Error('Invalid embedding format');
+                }
+                // Re-stringify to ensure proper format
+                patientData.faceEmbedding = JSON.stringify(embeddingArray);
+                
+                // If embedding is empty (face detection unavailable), that's okay
+                if (embeddingArray.length === 0) {
+                    console.log('Submitting patient without face embedding data');
+                }
+            } catch (error) {
+                showStatus('Invalid face embedding data. Please retake the photo.', 'error');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            const isUpdate = currentMatchedPatient !== null;
+            
+            submitBtn.innerHTML = `<span class="loading"></span> ${isUpdate ? 'Updating' : 'Registering'} Patient...`;
+            submitBtn.disabled = true;
+            
+            try {
+                if (isUpdate) {
+                    // Update existing patient
+                    patientData.id = currentMatchedPatient.id;
+                    await updatePatient(currentMatchedPatient.id, patientData);
+                    showStatus(`Patient ${patientData.name} updated successfully! ✓`, 'success');
+                } else {
+                    // Create new patient
+                    delete patientData.matchedPatientId; // Remove this field for new registrations
+                    await savePatient(patientData);
+                    showStatus(`Patient ${patientData.name} registered successfully! ✓`, 'success');
+                }
+                
+                // Reset form and reload patient list
+                setTimeout(async () => {
+                    resetForm();
+                    await loadPatients();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                const action = isUpdate ? 'update' : 'register';
+                showStatus(`Failed to ${action} patient. Please try again.`, 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function updatePatient(id, patientData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/Patients/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(patientData)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error updating patient:', error);
+                throw error;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('patientForm').reset();
+            document.getElementById('facePreview').style.display = 'none';
+            document.getElementById('capturePhoto').disabled = true;
+            document.getElementById('retakePhoto').style.display = 'none';
+            document.getElementById('startCamera').disabled = false;
+            
+            // Clear recognition state
+            clearPatientMatch();
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            overlay.innerHTML = '';
+            showStatus('Form reset. Ready for new patient registration.', 'warning');
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
